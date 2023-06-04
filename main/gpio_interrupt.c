@@ -28,6 +28,9 @@ static const int CONNECTED_BIT = BIT0;
 static const int ESPTOUCH_DONE_BIT = BIT1;
 static const char *TAG = "smartconfig_example";
 
+/* Is it the first time to Smartconfig ? */
+bool firstConfig = true;
+
 static void smartconfig_example_task(void * parm);
 
 static void event_handler(void* arg, esp_event_base_t event_base,
@@ -84,18 +87,27 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 
 static void initialise_wifi(void)
 {
-    ESP_ERROR_CHECK(esp_netif_init());
-    s_wifi_event_group = xEventGroupCreate();
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
-    assert(sta_netif);
+    /* If it's the first time to Smartconfig, config anything related to esp wifi */
+    if(firstConfig){
+        ESP_ERROR_CHECK(esp_netif_init());
+        s_wifi_event_group = xEventGroupCreate();
+        ESP_ERROR_CHECK(esp_event_loop_create_default());
+        esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+        assert(sta_netif);
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
+        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+        ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
 
-    ESP_ERROR_CHECK( esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL) );
-    ESP_ERROR_CHECK( esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL) );
-    ESP_ERROR_CHECK( esp_event_handler_register(SC_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL) );
+        ESP_ERROR_CHECK( esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL) );
+        ESP_ERROR_CHECK( esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL) );
+        ESP_ERROR_CHECK( esp_event_handler_register(SC_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL) );
+
+        firstConfig = false;
+    }
+    /* If not, then just stop the last wifi and restart it */
+    else {
+        esp_wifi_stop();
+    }
 
     ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK( esp_wifi_start() );
@@ -207,7 +219,7 @@ void app_main()
     gpio_set_intr_type(GPIO_INPUT_IO_0, GPIO_INTR_ANYEDGE);
  
     // start the task that will handle the button
-    xTaskCreate(button_task, "button_task", 2048, NULL, 10, NULL);
+    xTaskCreate(button_task, "button_task", 1024 * 3, NULL, 10, NULL);
  
     // install ISR service with default configuration
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
