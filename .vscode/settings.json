@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "esp_intr_alloc.h": "c",
+        "task.h": "c",
+        "freertos.h": "c",
+        "esp_timer.h": "c",
+        "stdio.h": "c",
+        "esp_log.h": "c",
+        "gpio.h": "c",
+        "esp_chip_info.h": "c",
+        "semphr.h": "c"
+    }
+}
